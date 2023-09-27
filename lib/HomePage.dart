@@ -1,63 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:primeiro_app/repositorio.dart';
 import 'dart:convert';
+import 'tweets.dart';
+import 'users.dart';
+import 'comments.dart';
 
 class HomePage extends StatefulWidget {
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
+
 class _HomePageState extends State<HomePage> {
-  List<Tweet> tweets = [];
+  Future<List<Tweet>>? futureTweets;
+  Future<User>? user;
+
   @override
   void initState() {
+    futureTweets = getTweets();
     super.initState();
-    fetchTweets();
   }
-  void fetchTweets() async {
-    final response = await http.get(Uri.parse('https://api.twitter.com/1.1/statuses/home_timeline.json'));
-    final jsonData = jsonDecode(response.body);
-    setState(() {
-      tweets = List<Tweet>.from(jsonData.map((data) => Tweet.fromJson(data)));
-    });
-  }
+
+  //final List<Tweet> posts;
+
+  //ListTweets(this.posts, {super.key});
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-        itemCount: tweets.length,
-        itemBuilder: (context, index) {
-          final tweet = tweets[index];
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: NetworkImage(tweet.user.profileImageUrl),
-              ),
-              title: Text(tweet.user.name),
-              subtitle: Text(tweet.text),
-            ),
-          );
+    return FutureBuilder(
+        future: futureTweets,
+        builder: (context, snapshot) {
+          if(snapshot.hasData){
+            final posts = snapshot.data as List<Tweet>;
+            return ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                final user = getUser(post.user_id);
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage("https://robohash.org/excepturiiuremolestiae.png"),
+                    ),
+                    title: Text(post.user_id),
+                    subtitle: Text(post.body),
+                  ),
+                );
+              },
+            );
+          } else if(snapshot.hasError) {
+            return Text(snapshot.error.toString());
+          }
+          return CircularProgressIndicator();
         },
-      );
-  }
-}
-class Tweet {
-  final String text;
-  final User user;
-  Tweet({required this.text, required this.user});
-  factory Tweet.fromJson(Map<String, dynamic> json) {
-    return Tweet(
-      text: json['text'],
-      user: User.fromJson(json['user']),
     );
+    /*;*/
+
   }
 }
-class User {
-  final String name;
-  final String profileImageUrl;
-  User({required this.name, required this.profileImageUrl});
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      name: json['name'],
-      profileImageUrl: json['profile_image_url_https'],
-    );
-  }
-}
+
+
